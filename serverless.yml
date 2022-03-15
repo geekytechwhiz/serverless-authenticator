@@ -1,0 +1,97 @@
+service:
+  name: authenticator-rest-api
+package:
+  individually: true
+
+plugins: 
+  - serverless-offline 
+  - serverless-domain-manager
+  - serverless-deployment-bucket
+  - serverless-webpack
+
+provider:
+  name: aws
+  runtime: nodejs14.x 
+  stage: ${opt:stage, 'dev'}
+  region: ap-south-1
+  profile: serverless-admin
+  deploymentBucket:
+    name: authenticator-rest-apis
+    serverSideEncryption: AES256
+  environment:
+    USERS_TABLE_NAME: ${self:custom.UsersTable.name} 
+    STAGE: ${opt:stage, 'dev'}
+  iam: 
+   role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: arn:aws:dynamodb:ap-south-1:670022476151:table/User-dev 
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource: arn:aws:s3:::${self:custom.UsersBucket.name}/* 
+
+resources:
+  Resources:
+    UsersTable: ${file(infra/resources/dynamodb.yml):UsersTable}
+    UsersBucket: ${file(infra/resources/s3.yml):UsersBucket}
+    UsersBucketPolicy: ${file(infra/resources/s3.yml):UsersBucketPolicy}
+    
+functions:
+  verify-token:
+    handler: app/handlers/authorize.handler
+  register:
+    handler: app/handlers/register.handler
+    events:
+      - http:
+          method: POST
+          path: /register
+          cors: true 
+  login:
+    handler: app/handlers/login.handler
+    events:
+      - http:
+          method: POST
+          path: /login
+          cors: true 
+  healthCheck:
+    handler: app/handlers/health.handler
+    events:
+      - http:
+          path: /health
+          method: get
+          cors: true
+          authorizer:
+            name: verify-token
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600  
+custom:
+  stage: dev 
+  webpack: 
+    keepOutputDirectory: true
+    includeModules:
+      packagePath: './package.json'
+    webpackConfig: 'webpack.config.js' 
+    packager: 'npm'  
+    excludeFiles: src/**/*.test.js 
+
+  domains: 
+    dev: api.migobucks.com
+    # prod: api.migobucks.com 
+  UsersTable:
+    name: !Ref UsersTable
+    arn: !GetAtt UsersTable.Arn 
+  UsersBucket:
+    name: authenticator-rest-apis-${self:provider.stage} 
+  customDomain:
+    domainName: ${self:custom.domains.${self:custom.stage}}
+    basePath: 'authorizer'
+    stage: dev 
+    createRoute53Record: true  

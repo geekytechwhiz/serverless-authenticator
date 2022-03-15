@@ -1,0 +1,44 @@
+UsersTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: User-${self:provider.stage}
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions: 
+      - AttributeName: EmailID
+        AttributeType: S  
+    KeySchema:
+      - AttributeName: EmailID
+        KeyType: HASH 
+    # LocalSecondaryIndexes:
+    #   - IndexName: MobileNumberAndEmailID
+    #     KeySchema:
+    #       - AttributeName: EmailID
+    #         KeyType: HASH
+    #       - AttributeName: MobileNumber
+    #         KeyType: RANGE 
+    #     Projection:
+    #         ProjectionType: ALL 
+    #   - IndexName: StatusAndEmailID
+    #     KeySchema:
+    #       - AttributeName: EmailID
+    #         KeyType: HASH
+    #       - AttributeName: Status
+    #         KeyType: RANGE 
+    #     Projection:
+    #         ProjectionType: ALL
+    #   - IndexName: UserTypeAndEmailID
+    #     KeySchema:
+    #       - AttributeName: EmailID
+    #         KeyType: HASH
+    #       - AttributeName: UserType
+    #         KeyType: RANGE 
+    #     Projection:
+    #         ProjectionType: ALL  
+    #   - IndexName: UserIDAndEmailID
+    #     KeySchema:
+    #       - AttributeName: EmailID
+    #         KeyType: HASH
+    #       - AttributeName: UserID
+    #         KeyType: RANGE 
+    #     Projection:
+    #         ProjectionType: ALL  
